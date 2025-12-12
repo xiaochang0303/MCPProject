@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "tour-guide-stdio": {
+      "command": "/Users/xiaocan/MCP_Project/.venv/bin/python",
+      "args": ["/Users/xiaocan/MCP_Project/tourmcp.py"],
+      "cwd": "/Users/xiaocan/MCP_Project",
+      "env": {
+        "PYTHONPATH": "/Users/xiaocan/MCP_Project"
+      }
+    },
+    "tour-guide-sse": {
+      "url": "http://localhost:8000/sse"
+    }
+  }
+}
