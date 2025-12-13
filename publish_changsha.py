@@ -5,7 +5,7 @@ import time
 from upload_xiaohongshu import get_driver, xiaohongshu_login, publish_image_post
 
 def main():
-    # 文件路径
+    # 文件路径llll
     image_path = "/Users/xiaocan/MCP_Project/generated_images/trip_vis_-1023213573775567509.png"
     
     # 检查文件是否存在
