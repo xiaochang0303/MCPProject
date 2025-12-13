@@ -21,7 +21,7 @@ from selenium.webdriver.chromium.remote_connection import ChromiumRemoteConnecti
 ROOT_PATH = os.getenv(
     "ROOT_PATH", os.path.join(os.getcwd(), "data_storage"))
 VIDEO_PATH = os.path.join(ROOT_PATH, "output")
-COOKING_PATH = os.path.join(ROOT_PATH, "cooking")
+COOKING_PATH = os.path.join(ROOT_PATH, "cookies")
 
 # Ensure directories exist
 if not os.path.exists(COOKING_PATH):
@@ -50,7 +50,10 @@ def get_driver():
     #     options=chrome_options
     # )
     # Use local driver if remote fails or for easier testing
-    driver = webdriver.Chrome(options=chrome_options)
+    # 指定chromedriver路径
+    from selenium.webdriver.chrome.service import Service
+    service = Service(executable_path='/Users/lxxxx/bin/chromedriver143')
+    driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.maximize_window()
     # driver = webdriver.Remote(
     #   command_executor= ChromiumRemoteConnection(remote_server_addr='http://101.43.210.78:50000',vendor_prefix='-webkit-',browser_name="CHROME"),

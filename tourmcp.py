@@ -358,7 +358,7 @@ def publish_xiaohongshu_video(
     title: str,
     content: str,
     topics: List[str] = None,
-    schedule_hours: int = 24
+    schedule_hours: int = 0
 ) -> Dict[str, Any]:
     """
     发布视频笔记到小红书
@@ -368,7 +368,7 @@ def publish_xiaohongshu_video(
         title: 笔记标题
         content: 笔记内容描述
         topics: 话题标签列表，如 ["#旅游", "#攻略"]
-        schedule_hours: 定时发布的小时数（默认24小时后）
+        schedule_hours: 
     
     返回:
         发布结果信息
@@ -423,9 +423,20 @@ def publish_xiaohongshu_video(
         }
 
 
+import os
+from typing import List, Dict, Any
+# 补充必要的导入（若项目中未引入）
+try:
+    from upload_xiaohongshu import publish_image_post, get_driver, xiaohongshu_login
+except ImportError:
+    publish_image_post = None
+    get_driver = None
+    xiaohongshu_login = None
+
+
 @mcp.tool(
     name='publish_xiaohongshu_images',
-    description='发布图文笔记到小红书（需要已登录的浏览器会话）'
+    description='发布图文笔记到小红书（需要已登录的浏览器会话），标题自动校验≤20字'
 )
 def publish_xiaohongshu_images(
     file_path: str,
@@ -435,66 +446,124 @@ def publish_xiaohongshu_images(
     schedule_hours: int = 24
 ) -> Dict[str, Any]:
     """
-    发布图文笔记到小红书
+    发布图文笔记到小红书（严格遵守小红书标题≤20字规则）
     
     参数:
-        file_path: 图片文件的绝对路径（支持多图，用逗号分隔）
-        title: 笔记标题
+        file_path: 图片文件的绝对路径（支持多图，用英文逗号分隔，如"/a.jpg,/b.jpg"）
+        title: 笔记标题（自动校验≤20字，超长会截断并提示）
         content: 笔记内容描述
-        topics: 话题标签列表，如 ["#旅游", "#攻略"]
-        schedule_hours: 定时发布的小时数（默认24小时后）
+        topics: 话题标签列表，如 ["#旅游", "#攻略"]（默认：["#旅游", "#风景", "#打卡"]）
+        schedule_hours: 定时发布的小时数（默认24小时后，范围：1-72小时）
     
     返回:
-        发布结果信息
+        发布结果信息（含标题处理、文件校验、发布状态等细节）
     """
+    # ========== 基础参数校验 ==========
+    # 1. 标题长度校验与处理（核心优化）
+    MAX_TITLE_LEN = 20
+    title_origin = title.strip()
+    title_processed = title_origin
+    title_warning = ""
+    
+    if len(title_processed) > MAX_TITLE_LEN:
+        # 截断超长标题（保留20字）
+        title_processed = title_processed[:MAX_TITLE_LEN]
+        title_warning = f"标题超长（原长度{len(title_origin)}），已自动截断为20字：{title_processed}"
+    
+    # 2. 话题标签默认值
+    if topics is None:
+        topics = ["#旅游", "#风景", "#打卡"]
+    # 标准化话题格式（确保带#）
+    topics = [t if t.startswith("#") else f"#{t}" for t in topics]
+    
+    # 3. 定时发布小时数范围校验
+    if not (1 <= schedule_hours <= 72):
+        return {
+            "success": False,
+            "message": f"定时发布小时数非法（需1-72小时），当前值：{schedule_hours}"
+        }
+    
+    # 4. 多文件路径校验
+    file_paths = [fp.strip() for fp in file_path.split(",") if fp.strip()]
+    missing_files = [fp for fp in file_paths if not os.path.exists(fp)]
+    if missing_files:
+        return {
+            "success": False,
+            "message": f"以下文件不存在：{', '.join(missing_files)}",
+            "details": {"valid_files": [fp for fp in file_paths if fp not in missing_files]}
+        }
+
+    # ========== 依赖校验 ==========
     try:
         from upload_xiaohongshu import publish_image_post, get_driver, xiaohongshu_login
-        
-        if topics is None:
-            topics = ["#旅游", "#风景", "#打卡"]
-        
-        if not os.path.exists(file_path):
-            return {
-                "success": False,
-                "message": f"文件不存在: {file_path}"
-            }
-        
-        driver = get_driver()
-        try:
-            xiaohongshu_login(driver)
-            publish_image_post(
-                driver=driver,
-                file_path=file_path,
-                title=title,
-                content=content,
-                topics=topics,
-                date_offset_hours=schedule_hours
-            )
-            
-            return {
-                "success": True,
-                "message": "图文笔记发布成功",
-                "details": {
-                    "file_path": file_path,
-                    "title": title,
-                    "topics": topics,
-                    "schedule_hours": schedule_hours
-                }
-            }
-        finally:
-            driver.quit()
-            
     except ImportError as e:
         return {
             "success": False,
-            "message": f"缺少依赖: {str(e)}，请确保已安装 selenium"
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "message": f"发布失败: {str(e)}"
+            "message": f"缺少小红书发布依赖：{str(e)}",
+            "suggestion": "请安装selenium并确保upload_xiaohongshu.py文件存在"
         }
 
+    # ========== 发布逻辑 ==========
+    driver = None
+    try:
+        driver = get_driver()
+        # 登录校验
+        login_result = xiaohongshu_login(driver)
+        # 若login有返回值（如登录失败），直接返回
+        if login_result and not login_result.get("success", True):
+            return {
+                "success": False,
+                "message": "小红书登录失败",
+                "details": {"login_error": str(login_result)}
+            }
+        
+        # 发布笔记（使用处理后的标题）
+        publish_result = publish_image_post(
+            driver=driver,
+            file_path=file_path,  # 保持原格式传给底层函数
+            title=title_processed,
+            content=content,
+            topics=topics,
+            date_offset_hours=schedule_hours
+        )
+
+        # 构造返回结果
+        result = {
+            "success": True,
+            "message": "图文笔记发布成功" + (f" | {title_warning}" if title_warning else ""),
+            "details": {
+                "title_origin": title_origin,
+                "title_processed": title_processed,
+                "title_length": len(title_processed),
+                "file_paths": file_paths,
+                "topics": topics,
+                "schedule_hours": schedule_hours,
+                "publish_result": publish_result  # 透传底层发布结果
+            }
+        }
+        if title_warning:
+            result["warning"] = title_warning
+        return result
+
+    except Exception as e:
+        # 细化异常类型提示
+        error_type = type(e).__name__
+        return {
+            "success": False,
+            "message": f"发布失败（{error_type}）：{str(e)}",
+            "details": {
+                "title_origin": title_origin,
+                "title_processed": title_processed,
+                "file_paths": file_paths
+            }
+        }
+    finally:
+        # 确保浏览器驱动关闭
+        if driver:
+            try:
+                driver.quit()
+            except:
+                pass
 
 @mcp.tool(
     name='generate_xiaohongshu_content',

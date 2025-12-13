@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.14"
 
 [[package]]
@@ -73,6 +73,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/1d/ec1a60bd1a10daa292d3cd6bb0b359a81607154fb8165f3ec95fe003b85c/cffi-2.0.0-cp314-cp314t-win32.whl", hash = "sha256:1fc9ea04857caf665289b7a75923f2c6ed559b8298a1b8c49e59f7dd95c8481e", size = 180487, upload-time = "2025-09-08T23:23:40.423Z" },
     { url = "https://files.pythonhosted.org/packages/bf/41/4c1168c74fac325c0c8156f04b6749c8b6a8f405bbf91413ba088359f60d/cffi-2.0.0-cp314-cp314t-win_amd64.whl", hash = "sha256:d68b6cef7827e8641e8ef16f4494edda8b36104d79773a334beaa1e3521430f6", size = 191726, upload-time = "2025-09-08T23:23:41.742Z" },
     { url = "https://files.pythonhosted.org/packages/ae/3a/dbeec9d1ee0844c679f6bb5d6ad4e9f198b1224f4e7a32825f47f6192b0c/cffi-2.0.0-cp314-cp314t-win_arm64.whl", hash = "sha256:0a1527a803f0a659de1af2e1fd700213caba79377e27e4693648c2923da066f9", size = 184195, upload-time = "2025-09-08T23:23:43.004Z" },
+]
+
+[[package]]
+name = "chromedriver-py"
+version = "143.0.7499.42"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b7/b2/0bc6f46789e751037c11c96b2c3bc234812c451a02ae36c51d7499dd7982/chromedriver_py-143.0.7499.42.tar.gz", hash = "sha256:61c5e66aebb1ba85b150b8d248353f3ae91ac6ff10953229a578c0ea8e88c4aa", size = 43243966, upload-time = "2025-12-11T00:10:41.779Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6f/74/f814f7367f80b0e71fe7ca7005af21367368a0db593662df42e9e3ae8deb/chromedriver_py-143.0.7499.42-py3-none-any.whl", hash = "sha256:35844a82215f2407b5206b18ba0b0ccf136143c6a496e207d35ecfa8cd721b4a", size = 43344757, upload-time = "2025-12-11T00:10:36.529Z" },
 ]
 
 [[package]]
@@ -282,11 +291,15 @@ name = "mcp-project"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "chromedriver-py" },
     { name = "mcp", extra = ["cli"] },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "mcp", extras = ["cli"], specifier = ">=1.21.1" }]
+requires-dist = [
+    { name = "chromedriver-py", specifier = ">=143.0.7499.42" },
+    { name = "mcp", extras = ["cli"], specifier = ">=1.21.1" },
+]
 
 [[package]]
 name = "mdurl"
