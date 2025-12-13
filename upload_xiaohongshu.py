@@ -29,7 +29,7 @@ def xiaohongshu_login(driver):
             driver.implicitly_wait(5)
             driver.delete_all_cookies()
             time.sleep(SLOW_WAIT)
-            # 遍历cook
+            # 遍历cookie
             print("加载cookie")
             for cookie in cookies:
                 if 'expiry' in cookie:
