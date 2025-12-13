@@ -178,7 +178,7 @@ def generate_xiaohongshu_content(
         生成的标题、内容和推荐话题
     """
     # 导入旅游数据工具
-    from MCPProject.tourmcp_old import get_spots_by_city
+    from MCPProject.places_read_mcp import get_spots_by_city
     
     data = get_spots_by_city(province, city)
     spots = data.get("spots", [])
