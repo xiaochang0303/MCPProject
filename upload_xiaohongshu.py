@@ -29,12 +29,12 @@ def xiaohongshu_login(driver):
             driver.implicitly_wait(5)
             driver.delete_all_cookies()
             time.sleep(SLOW_WAIT)
-            # 遍历cook
+            # 遍历cookie
             print("加载cookie")
             for cookie in cookies:
                 if 'expiry' in cookie:
                     del cookie["expiry"]
-                # 添加cook
+                # 添加cookie
                 driver.add_cookie(cookie)
             time.sleep(FAST_WAIT)
             # 刷新
@@ -46,7 +46,7 @@ def xiaohongshu_login(driver):
         print("cookies不存在")
         driver.get('https://creator.xiaohongshu.com/creator/post')
         print("等待登录")
-        time.sleep(30)  # 登录需要用户手动操作，保留
+        time.sleep(100)  # 登录需要用户手动操作，保留
         print("登录完毕")
         cookies = driver.get_cookies()
         with open(XIAOHONGSHU_COOKING, 'w') as f:

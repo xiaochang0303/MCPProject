@@ -3,6 +3,8 @@ import os
 from typing import List, Dict, Any
 import sys
 import os
+# 导入旅游数据工具
+from places_read_mcp import get_spots_by_city
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 mcp = FastMCP("Xiaohongshu Publisher")
@@ -34,7 +36,7 @@ def publish_xiaohongshu_video(
     """
     try:
         # Import locally to avoid requiring selenium if not used
-        from utils.upload_xiaohongshu import publish_single_post, get_driver, xiaohongshu_login
+        from upload_xiaohongshu import publish_single_post, get_driver, xiaohongshu_login
         
         if topics is None:
             topics = ["#旅游", "#攻略", "#景点推荐"]
@@ -107,7 +109,7 @@ def publish_xiaohongshu_images(
         发布结果信息
     """
     try:
-        from utils.upload_xiaohongshu import publish_image_post, get_driver, xiaohongshu_login
+        from upload_xiaohongshu import publish_image_post, get_driver, xiaohongshu_login
         
         if topics is None:
             topics = ["#旅游", "#风景", "#打卡"]
@@ -177,8 +179,7 @@ def generate_xiaohongshu_content(
     返回:
         生成的标题、内容和推荐话题
     """
-    # 导入旅游数据工具
-    from MCPProject.tourmcp_old import get_spots_by_city
+    
     
     data = get_spots_by_city(province, city)
     spots = data.get("spots", [])

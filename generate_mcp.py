@@ -14,7 +14,7 @@ NANO_BANANA_API_URL = "https://api.acedata.cloud/nano-banana/images"
     name='travel_image_prompt_guide',
     description='旅游攻略长图的提示词生成框架 - 指导AI按四行格式生成图片描述'
 )
-def travel_image_prompt_guide(city: str, weather: str = "晴天 20度") -> str:
+def travel_image_prompt_guide(city: str, weather: str ) -> str:
     """返回四行格式的图片 Prompt 生成框架"""
     return f"""请为「{city}」生成一张一日游攻略长图。
 
@@ -62,9 +62,10 @@ def travel_image_prompt_guide(city: str, weather: str = "晴天 20度") -> str:
 ## ⚡ 执行步骤
 
 1. **获取景点**：使用 `get_spots_by_city` 工具获取{city}的景点数据
-2. **选择景点**：从中选择3个高评分景点（早/中/晚）
-3. **生成 Prompt**：按四行格式构建完整描述（每行都要详细！）
-4. **调用生成**：使用 `generate_image_nano_banana` 工具生成图片
+2. **获取天气信息**：使用 `get_weather` 工具获取{city}的{weather}数据
+3. **选择景点**：从中选择3个高评分景点（早/中/晚）
+4. **生成 Prompt**：按四行格式构建完整描述（每行都要详细！）
+5. **调用生成**：使用 `generate_image_nano_banana` 工具生成图片
    - prompt: 你生成的完整四行描述
    - width: 1024
    - height: 2048（长图比例）
