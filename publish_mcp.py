@@ -1,10 +1,11 @@
 from mcp.server.fastmcp import FastMCP
 import os
 from typing import List, Dict, Any
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
+
+from places_read_mcp import get_spots_by_city
 mcp = FastMCP("Xiaohongshu Publisher")
 
 
@@ -177,8 +178,7 @@ def generate_xiaohongshu_content(
     返回:
         生成的标题、内容和推荐话题
     """
-    # 导入旅游数据工具
-    from MCPProject.places_read_mcp import get_spots_by_city
+   
     
     data = get_spots_by_city(province, city)
     spots = data.get("spots", [])
