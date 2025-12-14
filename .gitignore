@@ -23,6 +23,7 @@ pyproject.toml
 .python-version
 
 # Local data (cookies, output, generated assets)
+data/
 data_storage/cookies/
 data_storage/output/
 generated_images/
