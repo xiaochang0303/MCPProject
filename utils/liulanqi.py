@@ -34,7 +34,6 @@ COOKING_TXT = os.path.join(COOKING_PATH, "douyin.txt")
 agent = 'Mozilla/5.0 (Macintosh; Linux) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
 isDingShi = os.getenv("IS_DINGSHI", True)
 
-
 def get_driver():
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('--no-sandbox')  # 解决DevToolsActivePort文件不存在的报错
