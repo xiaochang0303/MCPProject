@@ -4,7 +4,10 @@ from typing import List, Dict, Any
 import sys
 import os
 # 导入旅游数据工具
-from places_read_mcp import get_spots_by_city
+try:
+    from .places_read_mcp import get_spots_by_city
+except ImportError:
+    from places_read_mcp import get_spots_by_city
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 mcp = FastMCP("Xiaohongshu Publisher")

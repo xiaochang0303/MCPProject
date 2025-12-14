@@ -8,7 +8,7 @@
 
 本项目包含以下五个核心 MCP 服务器模块，每个模块都提供了一组特定的工具（Tool）供调用。
 
-### 1. 🏛️ 景点数据读取服务器 (`places_read_mcp.py`)
+### 1. 🏛️ 景点数据读取服务器 (`mcp_servers/places_read_mcp.py`)
 
 **功能：** 负责读取和管理本地存储的景点数据，支持按省份、城市、关键词等多种条件进行查询。
 
@@ -22,7 +22,7 @@
 
 **数据存储：** 景点数据以 JSON 格式存储，文件结构遵循 `省份/城市/景点.json` 的组织方式。
 
-### 2. 🎨 图片生成服务器 (`generate_mcp.py`)
+### 2. 🎨 图片生成服务器 (`mcp_servers/generate_mcp.py`)
 
 **功能：** 调用 Nano Banana API 生成旅游攻略长图（竖版海报），特别支持四行格式的详细图片描述，适用于小红书等平台。
 
@@ -36,7 +36,7 @@
 *   支持早、中、晚三个时段的景点展示。
 *   自动保存生成的图片到本地。
 
-### 3. 📱 小红书发布服务器 (`publish_mcp.py`)
+### 3. 📱 小红书发布服务器 (`mcp_servers/publish_mcp.py`)
 
 **功能：** 自动化发布旅游内容到小红书平台，支持图文笔记和视频笔记的发布。
 
@@ -49,7 +49,7 @@
 
 **依赖：** 需要已登录的浏览器会话（如通过 Selenium 维护）。
 
-### 4. 🗺️ 路径规划服务器 (`route_planning_mcp.py`)
+### 4. 🗺️ 路径规划服务器 (`mcp_servers/route_planning_mcp.py`)
 
 **功能：** 基于高德地图 API 实现路径规划功能，支持多种出行方式，并支持多点路径规划。
 
@@ -61,7 +61,7 @@
 
 **支持出行方式：** 驾车 (`driving`)、步行 (`walking`)、骑行 (`bicycling`)、电动车 (`electrobike`)、公交 (`transit`)。
 
-### 5. 🌤️ 天气查询服务器 (`weather_mcp.py`)
+### 5. 🌤️ 天气查询服务器 (`mcp_servers/weather_mcp.py`)
 
 **功能：** 基于高德地图 API 查询指定地点的实时天气和天气预报信息。
 
@@ -93,7 +93,7 @@ pip install mcp fastmcp httpx pydantic selenium
 #### 1. 获取 API Key
 
 *   **高德地图 API Key：** 访问 [高德开放平台](https://lbs.amap.com/) 注册并获取。
-*   **Nano Banana API Key：** 访问 [acedata.cloud](https://acedata.cloud/) 注册并获取（需在 `generate_mcp.py` 中修改 `token` 变量）。
+*   **Nano Banana API Key：** 访问 [acedata.cloud](https://acedata.cloud/) 注册并获取（需在 `mcp_servers/generate_mcp.py` 中修改 `token` 变量）。
 
 #### 2. 配置 Cline MCP 设置
 
@@ -110,7 +110,7 @@ pip install mcp fastmcp httpx pydantic selenium
       "timeout": 600,
       "type": "stdio",
       "command": "你的Python解释器路径",
-      "args": ["你的项目路径\\route_planning_mcp.py"],
+      "args": ["你的项目路径\\mcp_servers\\route_planning_mcp.py"],
       "cwd": "你的项目路径",
       "env": {
         "AMAP_API_KEY": "你的高德地图API_Key"
@@ -122,7 +122,7 @@ pip install mcp fastmcp httpx pydantic selenium
       "timeout": 300,
       "type": "stdio",
       "command": "你的Python解释器路径",
-      "args": ["你的项目路径\\weather_mcp.py"],
+      "args": ["你的项目路径\\mcp_servers\\weather_mcp.py"],
       "cwd": "你的项目路径",
       "env": {
         "AMAP_API_KEY": "你的高德地图API_Key"
@@ -134,7 +134,7 @@ pip install mcp fastmcp httpx pydantic selenium
       "timeout": 300,
       "type": "stdio",
       "command": "你的Python解释器路径",
-      "args": ["你的项目路径\\places_read_mcp.py"],
+      "args": ["你的项目路径\\mcp_servers\\places_read_mcp.py"],
       "cwd": "你的项目路径"
     },
     "image-generator": {
@@ -143,7 +143,7 @@ pip install mcp fastmcp httpx pydantic selenium
       "timeout": 300,
       "type": "stdio",
       "command": "你的Python解释器路径",
-      "args": ["你的项目路径\\generate_mcp.py"],
+      "args": ["你的项目路径\\mcp_servers\\generate_mcp.py"],
       "cwd": "你的项目路径"
     },
     "xiaohongshu-publisher": {
@@ -152,7 +152,7 @@ pip install mcp fastmcp httpx pydantic selenium
       "timeout": 300,
       "type": "stdio",
       "command": "你的Python解释器路径",
-      "args": ["你的项目路径\\publish_mcp.py"],
+      "args": ["你的项目路径\\mcp_servers\\publish_mcp.py"],
       "cwd": "你的项目路径"
     }
   }
@@ -323,11 +323,12 @@ MCPProject/
 ├── data/                    # 景点数据目录
 ├── generated_images/        # 生成的图片
 ├── cline_mcp_settings.json  # Cline 配置文件
-├── places_read_mcp.py       # 景点读取服务器
-├── generate_mcp.py          # 图片生成服务器
-├── publish_mcp.py           # 小红书发布服务器
-├── route_planning_mcp.py    # 路径规划服务器
-├── weather_mcp.py           # 天气查询服务器
+├── mcp_servers/             # MCP 服务器代码
+│   ├── places_read_mcp.py    # 景点读取服务器
+│   ├── generate_mcp.py       # 图片生成服务器
+│   ├── publish_mcp.py        # 小红书发布服务器
+│   ├── route_planning_mcp.py # 路径规划服务器
+│   └── weather_mcp.py        # 天气查询服务器
 └── README.md                # 项目说明文档
 ```
 
