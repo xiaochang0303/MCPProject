@@ -104,7 +104,7 @@ def publish_xiaohongshu_video(
     """
     try:
         # Import locally to avoid requiring selenium if not used
-        from upload_xiaohongshu import publish_single_post, get_driver, xiaohongshu_login
+        from upload_utils import publish_single_post, get_driver, xiaohongshu_login
         
         if topics is None:
             topics = ["#旅游", "#攻略", "#景点推荐"]
@@ -177,7 +177,7 @@ def publish_xiaohongshu_images(
         发布结果信息
     """
     try:
-        from upload_xiaohongshu import publish_image_post, get_driver, xiaohongshu_login
+        from upload_utils import publish_image_post, get_driver, xiaohongshu_login
         
         if topics is None:
             topics = ["#旅游", "#风景", "#打卡"]
