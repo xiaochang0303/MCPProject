@@ -10,9 +10,10 @@ if _REPO_ROOT not in sys.path:
 
 # 导入旅游数据工具
 try:
-    from .places_read_mcp import get_spots_by_city
+    from crawler.places_read_mcp import get_spots_by_city
 except ImportError:
-    from publisher.places_read_mcp import get_spots_by_city
+    # Fallback for package execution contexts
+    from crawler.places_read_mcp import get_spots_by_city
 
 mcp = FastMCP("Xiaohongshu Publisher")
 
