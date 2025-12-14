@@ -17,6 +17,11 @@ wheels/
 .env
 .env.*
 
+# Local Python toolchain / dependency locks (do not commit)
+uv.lock
+pyproject.toml
+.python-version
+
 # Local data (cookies, output, generated assets)
 data_storage/cookies/
 data_storage/output/
