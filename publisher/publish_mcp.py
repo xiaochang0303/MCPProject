@@ -1,14 +1,18 @@
 from mcp.server.fastmcp import FastMCP
 import os
-from typing import List, Dict, Any
 import sys
-import os
+from typing import List, Dict, Any
+
+# Ensure repo root is on sys.path (supports `python publisher/publish_mcp.py`)
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
 # 导入旅游数据工具
 try:
     from .places_read_mcp import get_spots_by_city
 except ImportError:
-    from places_read_mcp import get_spots_by_city
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from publisher.places_read_mcp import get_spots_by_city
 
 mcp = FastMCP("Xiaohongshu Publisher")
 
@@ -104,7 +108,7 @@ def publish_xiaohongshu_video(
     """
     try:
         # Import locally to avoid requiring selenium if not used
-        from upload_utils import publish_single_post, get_driver, xiaohongshu_login
+        from middleware.upload_utils import publish_single_post, get_driver, xiaohongshu_login
         
         if topics is None:
             topics = ["#旅游", "#攻略", "#景点推荐"]
@@ -177,7 +181,7 @@ def publish_xiaohongshu_images(
         发布结果信息
     """
     try:
-        from upload_utils import publish_image_post, get_driver, xiaohongshu_login
+        from middleware.upload_utils import publish_image_post, get_driver, xiaohongshu_login
         
         if topics is None:
             topics = ["#旅游", "#风景", "#打卡"]

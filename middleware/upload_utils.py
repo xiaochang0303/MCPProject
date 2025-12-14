@@ -9,7 +9,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from liulanqi import COOKING_PATH, get_driver, get_map4, get_publish_date
+from .web_utils import COOKING_PATH, get_driver, get_map4, get_publish_date
 
 
 XIAOHONGSHU_COOKING = os.path.join(COOKING_PATH, "xiaohongshu.json")
