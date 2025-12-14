@@ -2,6 +2,7 @@ from mcp.server.fastmcp import FastMCP
 import os
 import requests
 import uuid
+import re
 from typing import Dict, Any
 
 mcp = FastMCP("Image Generator")
@@ -10,94 +11,168 @@ mcp = FastMCP("Image Generator")
 NANO_BANANA_API_URL = "https://api.acedata.cloud/nano-banana/images"
 
 
+def _validate_travel_poster_prompt(prompt: str) -> Dict[str, Any]:
+    """Validate that `prompt` matches the strict 6-line format from travel_image_prompt_guide.
+
+    This is intentionally strict to force the model to follow the guide:
+    - Exactly 6 non-empty lines
+    - No headings/lists/extra sections
+    - Final poster text must be English-only (avoid Chinese to reduce garbling)
+    - Time ranges must appear in lines 2–4
+    - Line 6 must include weather + outfit advice
+    """
+    if prompt is None:
+        return {"ok": False, "errors": ["prompt 不能为空"]}
+
+    raw = str(prompt).strip()
+    if not raw:
+        return {"ok": False, "errors": ["prompt 不能为空"]}
+
+    if "\n\n" in raw:
+        return {"ok": False, "errors": ["prompt 不允许包含空行；必须严格 6 行，每行一个模块"]}
+
+    lines = [line.strip() for line in raw.splitlines()]
+    if any(not line for line in lines):
+        return {"ok": False, "errors": ["prompt 不允许出现空行；必须严格 6 行"]}
+    if len(lines) != 6:
+        return {"ok": False, "errors": [f"prompt 必须严格 6 行；当前为 {len(lines)} 行"]}
+
+    forbidden_tokens = ["##", "---", "第一行", "第二行", "第三行", "第四行", "第五行", "输出格式", "严禁", "示例", "执行步骤"]
+    for token in forbidden_tokens:
+        if token in raw:
+            return {"ok": False, "errors": [f"prompt 只能是最终六行内容，不能包含说明/标题（检测到：{token}）"]}
+
+    # English-only: reject any CJK characters to avoid Chinese text garbling.
+    # (Prompt itself must be English-only; you can still pass `city` in Chinese to the guide.)
+    if re.search(r"[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]", raw):
+        return {"ok": False, "errors": ["prompt 必须为英文纯文本（不得包含中文/汉字），以降低海报文字乱码概率"]}
+
+    for idx, line in enumerate(lines, start=1):
+        if line.startswith(("-", "•", "*", "1)", "1.", "（1）")):
+            return {"ok": False, "errors": [f"第 {idx} 行疑似列表/项目符号开头；最终输出必须为纯文本六行"]}
+        if "XX" in line or "xxx" in line.lower():
+            return {"ok": False, "errors": [f"第 {idx} 行仍包含占位符（如 XX）；请用明确内容填充"]}
+
+    errors: list[str] = []
+
+    # Line 1: title only.
+    # User requirement: first line must be a pure English title like “One Day Schedule of Changsha”.
+    l1 = lines[0].strip()
+    l1_lower = l1.lower()
+    if "one day" not in l1_lower and "one-day" not in l1_lower and "1-day" not in l1_lower:
+        errors.append("第 1 行必须是英文标题，并包含 'one day/one-day/1-day'（示例：One Day Schedule of Changsha）")
+    forbidden_in_title = [
+        "morning",
+        "afternoon",
+        "evening",
+        "weather",
+        "outfit",
+        "8:00",
+        "11:00",
+        "12:00",
+        "15:00",
+        "16:00",
+        "19:00",
+        "infographic",
+        "poster",
+        "layout",
+        "module",
+    ]
+    if any(tok in l1_lower for tok in forbidden_in_title):
+        errors.append("第 1 行只能是标题本身，不要包含分栏说明/时间段/布局指令")
+
+    # Line 2–4: enforce time ranges
+    required_time_markers = [
+        (2, ["8:00", "11:00"]),
+        (3, ["12:00", "15:00"]),
+        (4, ["16:00", "19:00"]),
+    ]
+    for line_no, markers in required_time_markers:
+        line = lines[line_no - 1]
+        line_lower = line.lower()
+        if line_no == 2 and "morning" not in line_lower:
+            errors.append("第 2 行必须为 MORNING（英文）模块")
+        if line_no == 3 and "afternoon" not in line_lower:
+            errors.append("第 3 行必须为 AFTERNOON（英文）模块")
+        if line_no == 4 and "evening" not in line_lower:
+            errors.append("第 4 行必须为 EVENING（英文）模块")
+        if line_no == 6 and "the picture is 5 line sturcture, the first line is title, and 2,3,4 are morning, afternoon, evening. The 5 line is the weather and the outfit suggestion." not in line_lower:
+            errors.append("第 6 行必须为 STYLE CONTROL（英文）模块, 添加提示词：‘the picture is 5 line sturcture, the first line is title, and 2,3,4 are morning, afternoon, evening. The 5 line is the weather and the outfit suggestion. Global style (apply to ALL panels): clean travel infographic poster, soft illustration / watercolor feel, subtle paper texture, generous whitespace, well-aligned grid, no handwriting, no warped letters, no garbled text.‘")
+        # if any(bad in line_lower for bad in ["noon", "night"]):
+        #     errors.append(f"第 {line_no} 行请使用 Morning/Afternoon/Evening，不要使用 noon/night")
+        for m in markers:
+            if m not in line:
+                errors.append(f"第 {line_no} 行必须包含时间 {markers[0]}–{markers[1]}")
+                break
+
+    l5 = lines[4].lower()
+    if "weather" not in l5:
+        errors.append("第 5 行必须包含 weather 信息")
+    if "outfit" not in l5 and "wear" not in l5:
+        errors.append("第 5 行必须包含 outfit/穿衣建议（用英文表达）")
+    
+    # if "morning" in l5 or "afternoon" in l5 or "evening" in l5:
+    #     errors.append("第 5 行仅写天气与穿搭建议（可带收尾建议），不要再写早上/下午/晚上分栏，同时加上图片风格和清晰字体要求")
+
+    if errors:
+        return {"ok": False, "errors": errors}
+
+    return {"ok": True}
+
+
 @mcp.prompt(
     name='travel_image_prompt_guide',
-    description='旅游攻略长图的提示词生成框架 - 指导AI按四行格式生成图片描述'
+    description='旅游攻略长图的提示词生成框架（严格六行结构；不要求预算）'
 )
-def travel_image_prompt_guide(city: str, weather: str ) -> str:
-    """返回四行格式的图片 Prompt 生成框架"""
-    return f"""请为「{city}」生成一张一日游攻略长图。
+def travel_image_prompt_guide(city: str, weather: str = "Sunny 20°C") -> str:
+    """返回“严格六行结构”的长图生图 Prompt 生成框架。必须使用英文prompt，必须使用英文，禁止使用中文！
 
-## 📋 四行格式框架（必须严格遵循）
+    注意：这是“生成六行最终 Prompt 的框架/要求”，不是最终六行 Prompt 本身。
+    """
+    # Minimal built-in mapping for common cities used in this repo.
+    # If your city isn't listed, pass the English name directly as `city`.
+    city_en_map = {
+        "长沙": "Changsha",
+        "哈尔滨": "Harbin",
+        "西安": "Xi'an",
+        "北京": "Beijing",
+        "上海": "Shanghai",
+        "广州": "Guangzhou",
+        "深圳": "Shenzhen",
+        "成都": "Chengdu",
+        "杭州": "Hangzhou",
+        "南京": "Nanjing",
+        "武汉": "Wuhan",
+        "重庆": "Chongqing",
+    }
+    city_en = city_en_map.get(city.strip(), city.strip())
 
-你需要按照以下**四行结构**生成图片的描述性 Prompt：
+    return f"""You will create a text prompt for generating a vertical one-day travel infographic poster for {city_en}.
 
-**第一行**：背景说明
-- 描述：一张[城市]的一日游攻略长图，竖版海报，分为四个部分
+Output rules (VERY STRICT):
+- Output EXACTLY 6 lines of plain English text.
+- No extra explanations, no bullet points, no empty lines.
+- All poster text must be English only (no Chinese/CJK characters).
 
-**第二行**：早晨景点画面
-- 时间：早晨 8:00-11:00
-- 内容：第一部分：早晨[景点名]的景色，[具体画面细节]
+Line 1 (TITLE ONLY): A clean title text only, e.g. "One Day Schedule of {city_en}" (do NOT add layout instructions or times on this line).
+Line 2 (MORNING panel): Must include 8:00–11:00. Layout: put "MORNING 8:00–11:00" at the top-left of the morning panel; put the spot name + one actionable tip at the bottom-right; describe the scene in 15+ English words; typography: crisp, sharp, readable sans-serif.
+Line 3 (AFTERNOON panel): Must include 12:00–15:00. Layout: "AFTERNOON 12:00–15:00" top-left; spot name + one actionable tip bottom-right; 15+ English words scene description; crisp readable sans-serif.
+Line 4 (EVENING panel): Must include 16:00–19:00. Layout: "EVENING 16:00–19:00" top-left; spot name + one actionable tip bottom-right; 15+ English words with golden hour / sunset mood; crisp readable sans-serif.
+Line 5 (WEATHER & OUTFIT panel): Must include Weather: "{weather}" and clear outfit advice in English (e.g. "Light jacket + comfortable sneakers"); optional simple icon-like weather/outfit note; add one short route wrap-up tip (return / snack / indoor backup). Typography must look like vector print: sharp, high-contrast, no blur, no distortion.
+Line 6 (STYLE CONTROL): Must in English (e.g. "Light jacket + comfortable sneakers"); optional simple icon-like weather/outfit note; add one short route wrap-up tip (return / snack / indoor backup). Typography must look like vector print: sharp, high-contrast, no blur, no distortion.
 
-**第三行**：中午景点画面  
-- 时间：中午 12:00-15:00
-- 内容：第二部分：中午[景点名]的景色，[具体画面细节]
-
-**第四行**：傍晚景点画面
-- 时间：傍晚 16:00-19:00
-- 内容：第三部分：傍晚[景点名]的景色，[具体画面细节]
-
-**第五行**：天气和风格
-- 天气：第四部分：天气图标显示「{weather}」，配上简单的穿衣建议图标
-- 风格：整体风格：[摄影风格/色彩/质感描述]
-
-## 🎨 画面细节示例
-
-早晨场景示例：
-- "晨光洒在古建筑的飞檐上，石板路还带着露水，几只鸟儿在屋檐下栖息"
-- "清晨的湖面薄雾缭绕，渔船安静停泊，远处山峦若隐若现"
-
-中午场景示例：
-- "阳光下的街道色彩鲜艳，红灯笼高挂，游客在小吃摊前排队"
-- "正午的园林光影斑驳，荷花盛开，游人在凉亭中休憩拍照"
-
-傍晚场景示例：
-- "夕阳将整个塔身染成金色，晚霞映红天空，情侣在湖边漫步"
-- "黄昏时分的古镇灯火初上，石桥倒影在水中，天空呈现紫红渐变"
-
-风格描述示例：
-- "现代旅游海报风格，高清摄影质感，色彩明亮饱和，干净整洁的排版"
-- "电影级摄影，自然光影，真实细腻，色调温暖，富有故事感"
-
-## ⚡ 执行步骤
-
-1. **获取景点**：使用 `get_spots_by_city` 工具获取{city}的景点数据
-2. **获取天气信息**：使用 `get_weather` 工具获取{city}的{weather}数据
-3. **选择景点**：从中选择3个高评分景点（早/中/晚）
-4. **生成 Prompt**：按四行格式构建完整描述（每行都要详细！）
-5. **调用生成**：使用 `generate_image_nano_banana` 工具生成图片
-   - prompt: 你生成的完整四行描述
-   - width: 1024
-   - height: 2048（长图比例）
-
-## ✅ 检查清单
-
-生成 Prompt 前确保包含：
-- ✓ 明确说明"竖版海报，分为四个部分"
-- ✓ 三个景点的**具体名称**
-- ✓ 每个景点的**详细画面描述**（不少于15字）
-- ✓ 符合时间段的光线和氛围
-- ✓ 天气「{weather}」和穿衣建议
-- ✓ 明确的摄影风格说明
-
-## ❌ 常见错误
-
-不要：
-- ❌ 省略任何一行
-- ❌ 只写景点名不写画面细节
-- ❌ 使用模糊词汇如"美丽的"、"好看的"
-- ❌ 忘记风格描述
-
-现在开始为{city}生成吧！
+Global style (apply to ALL panels): clean travel infographic poster, soft illustration / watercolor feel, subtle paper texture, generous whitespace, well-aligned grid, no handwriting, no warped letters, no garbled text.
 """
 
 
 @mcp.tool(
     name='generate_image_nano_banana',
-    description='使用 Nano Banana API 生成图片，请根据travel_image_prompt_guide生成提示词'
+    description='使用 Nano Banana API 生成图片（强制：prompt 必须为 travel_image_prompt_guide 的最终六行格式；不要求门票/预算）。若 prompt 不合格，可传 city/weather 获取框架并按其重写后再调用。'
 )
 def generate_image_nano_banana(
-    prompt: str,
+    prompt: str = "",
+    city: str = "",
+    weather: str = "Sunny 20°C",
     negative_prompt: str = "",
     num_images: int = 1,
     width: int = 1024,
@@ -107,7 +182,9 @@ def generate_image_nano_banana(
     使用 Nano Banana API 生成图片
     
     参数:
-        prompt: 图片描述 prompt，请根据mcp工具travel_image_prompt_guide生成提示词'
+        prompt: 图片描述 prompt（必须为 travel_image_prompt_guide）
+        city: 可选；当 prompt 为空/不合格时，用于返回 travel_image_prompt_guide 框架，帮助你重写 prompt
+        weather: 可选；同上，用于生成框架中的天气字段
         negative_prompt: 负向提示词
         num_images: 生成图片数量 (默认 1)
         width: 图片宽度 (默认 1024)
@@ -116,6 +193,24 @@ def generate_image_nano_banana(
     返回:
         API 响应结果，包含图片 URL 或任务信息
     """
+    validation = _validate_travel_poster_prompt(prompt)
+    if not validation.get("ok"):
+        guide = None
+        if city.strip():
+            guide = travel_image_prompt_guide(city=city.strip(), weather=weather)
+
+        return {
+            "success": False,
+            "message": "prompt 未通过强制校验：必须使用 travel_image_prompt_guide 的最终六行格式（严格六行、无标题/无空行/含时间段与天气穿搭）。",
+            "errors": validation.get("errors", []),
+            "how_to_fix": [
+                "用 travel_image_prompt_guide(city, weather) 的要求生成‘最终六行’纯文本",
+                "不要任何标题/说明/空行/列表符号",
+                "重写后再调用 generate_image_nano_banana(prompt=最终六行)",
+            ],
+            "guide": guide,
+        }
+
     token = "a0adca3025b447f39473d852043281fe"
     
     if not token:
@@ -130,6 +225,14 @@ def generate_image_nano_banana(
         "content-type": "application/json"
     }
     
+    if not negative_prompt:
+        negative_prompt = (
+            "blurry text, illegible text, garbled text, distorted letters, deformed font, "
+            "low resolution, jpeg artifacts, watermark, signature, logo, random symbols, "
+            "overlapping text, messy typography, handwriting, chinese characters, hanzi, kanji, "
+            "cjk text, non-english text"
+        )
+
     payload = {
         "action": "generate",
         "model": "nano-banana",

@@ -8,3 +8,16 @@ wheels/
 
 # Virtual environments
 .venv
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Local secrets / env
+.env
+.env.*
+
+# Local data (cookies, output, generated assets)
+data_storage/cookies/
+data_storage/output/
+generated_images/

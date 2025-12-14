@@ -9,7 +9,7 @@ import sys
 from typing import Dict, Any, List, Optional
 import httpx
 from mcp.types import Tool
-from fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
 from enum import Enum
 from datetime import datetime, timedelta

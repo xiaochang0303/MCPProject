@@ -15,24 +15,20 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 import json
 import os
+import shutil
 from selenium.webdriver.chromium.remote_connection import ChromiumRemoteConnection
 
-# Use local project directory by default
-ROOT_PATH = os.getenv(
-    "ROOT_PATH", os.path.join(os.getcwd(), "data_storage"))
+ROOT_PATH = os.getenv("ROOT_PATH", os.path.join(os.getcwd(), "data_storage"))
 VIDEO_PATH = os.path.join(ROOT_PATH, "output")
 COOKING_PATH = os.path.join(ROOT_PATH, "cookies")
-
-# Ensure directories exist
-if not os.path.exists(COOKING_PATH):
-    os.makedirs(COOKING_PATH)
-if not os.path.exists(VIDEO_PATH):
-    os.makedirs(VIDEO_PATH)
-
 COOKING_TXT = os.path.join(COOKING_PATH, "douyin.txt")
+
+os.makedirs(COOKING_PATH, exist_ok=True)
+os.makedirs(VIDEO_PATH, exist_ok=True)
 
 agent = 'Mozilla/5.0 (Macintosh; Linux) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
 isDingShi = os.getenv("IS_DINGSHI", True)
+
 
 def get_driver():
     chrome_options = webdriver.ChromeOptions()
@@ -46,13 +42,18 @@ def get_driver():
         "--disable-blink-features=AutomationControlled")
     # driver = webdriver.Remote(
     #     command_executor="http://101.43.210.78:50000",
-    #     options=chrome_options
+    #     desired_capabilities=chrome_options.to_capabilities()
     # )
-    # Use local driver if remote fails or for easier testing
-    # 指定chromedriver路径
-    from selenium.webdriver.chrome.service import Service
-    service = Service(executable_path='/Users/lxxxx/bin/chromedriver143')
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    # driver.maximize_window()
+    chromedriver_path = os.getenv("CHROMEDRIVER_PATH") or shutil.which("chromedriver")
+
+    if chromedriver_path:
+        from selenium.webdriver.chrome.service import Service
+        service = Service(executable_path=chromedriver_path)
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+    else:
+        # Fallback to Selenium Manager (Selenium 4.6+) to resolve driver automatically.
+        driver = webdriver.Chrome(options=chrome_options)
     driver.maximize_window()
     # driver = webdriver.Remote(
     #   command_executor= ChromiumRemoteConnection(remote_server_addr='http://101.43.210.78:50000',vendor_prefix='-webkit-',browser_name="CHROME"),

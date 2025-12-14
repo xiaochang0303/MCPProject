@@ -315,20 +315,20 @@ def publish_image_post(driver, file_path, title, content, topics=None, date_offs
     time.sleep(MEDIUM_WAIT)
     
     # Topics
-    if content_input and topics:
-        for label in topics:
-            label = remove_non_bmp(label)
-            content_input.send_keys(label)
-            time.sleep(FAST_WAIT)
-            try:
-                data_indexs = driver.find_elements("class name", "publish-topic-item")
-                for data_index in data_indexs:
-                    if label in data_index.text:
-                        data_index.click()
-                        break
-            except:
-                pass
-            time.sleep(FAST_WAIT)
+    # if content_input and topics:
+    #     for label in topics:
+    #         label = remove_non_bmp(label)
+    #         content_input.send_keys(label)
+    #         time.sleep(FAST_WAIT)
+    #         try:
+    #             data_indexs = driver.find_elements("class name", "publish-topic-item")
+    #             for data_index in data_indexs:
+    #                 if label in data_index.text:
+    #                     data_index.click()
+    #                     break
+    #         except:
+    #             pass
+    #         time.sleep(FAST_WAIT)
 
     # Schedule publish
     dingshi = driver.find_elements("xpath", '//*[@class="css-1v54vzp"]')
